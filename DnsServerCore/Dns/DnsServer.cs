@@ -175,6 +175,8 @@ namespace DnsServerCore.Dns
         int _quicIdleTimeout = 60000;
         int _quicMaxInboundStreams = 100;
         int _listenBacklog = 100;
+        int _udpSendBufferSizeKB = 2048;
+        int _udpReceiveBufferSizeKB = 2048;
 
         bool _enableEDnsClientSubnetSourceAddress;
         bool _enableDnsOverUdpProxy;
@@ -797,6 +799,18 @@ namespace DnsServerCore.Dns
             _quicIdleTimeout = bR.ReadInt32();
             _quicMaxInboundStreams = bR.ReadInt32();
             _listenBacklog = bR.ReadInt32();
+
+            if (version >= 3)
+            {
+                _udpSendBufferSizeKB = bR.ReadInt32();
+                _udpReceiveBufferSizeKB = bR.ReadInt32();
+            }
+            else
+            {
+                _udpSendBufferSizeKB = 2048;
+                _udpReceiveBufferSizeKB = 2048;
+            }
+
             MaxConcurrentResolutionsPerCore = bR.ReadUInt16();
 
             //optional protocols
@@ -805,6 +819,10 @@ namespace DnsServerCore.Dns
                 bool enableEDnsClientSubnetSourceAddress = bR.ReadBoolean();
                 if (!isConfigTransfer)
                     _enableEDnsClientSubnetSourceAddress = enableEDnsClientSubnetSourceAddress;
+            }
+            else
+            {
+                _enableEDnsClientSubnetSourceAddress = false;
             }
 
             bool enableDnsOverUdpProxy = bR.ReadBoolean();
@@ -1233,6 +1251,8 @@ namespace DnsServerCore.Dns
             bW.Write(_quicIdleTimeout);
             bW.Write(_quicMaxInboundStreams);
             bW.Write(_listenBacklog);
+            bW.Write(_udpSendBufferSizeKB);
+            bW.Write(_udpReceiveBufferSizeKB);
             bW.Write(MaxConcurrentResolutionsPerCore);
 
             //optional protocols
@@ -1560,7 +1580,7 @@ namespace DnsServerCore.Dns
 
         #region private
 
-        private static Socket GetUdpListnerSocket(AddressFamily addressFamily)
+        private Socket GetUdpListnerSocket(AddressFamily addressFamily)
         {
             Socket udpListener = new Socket(addressFamily, SocketType.Dgram, ProtocolType.Udp);
 
@@ -1580,8 +1600,8 @@ namespace DnsServerCore.Dns
             if (Environment.OSVersion.Platform == PlatformID.Unix)
                 udpListener.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1); //to allow binding to same port with different addresses
 
-            udpListener.ReceiveBufferSize = 512 * 1024;
-            udpListener.SendBufferSize = 512 * 1024;
+            udpListener.SendBufferSize = _udpSendBufferSizeKB * 1024;
+            udpListener.ReceiveBufferSize = _udpReceiveBufferSizeKB * 1024;
 
             return udpListener;
         }
@@ -7330,6 +7350,30 @@ namespace DnsServerCore.Dns
         {
             get { return _listenBacklog; }
             set { _listenBacklog = value; }
+        }
+
+        public int UdpSendBufferSizeKB
+        {
+            get { return _udpSendBufferSizeKB; }
+            set
+            {
+                if ((value < 8) || (value > 65536))
+                    throw new ArgumentOutOfRangeException(nameof(UdpSendBufferSizeKB), "Valid range is from 8 KB to 65536 KB.");
+
+                _udpSendBufferSizeKB = value;
+            }
+        }
+
+        public int UdpReceiveBufferSizeKB
+        {
+            get { return _udpReceiveBufferSizeKB; }
+            set
+            {
+                if ((value < 8) || (value > 65536))
+                    throw new ArgumentOutOfRangeException(nameof(UdpReceiveBufferSizeKB), "Valid range is from 8 KB to 65536 KB.");
+
+                _udpReceiveBufferSizeKB = value;
+            }
         }
 
         public ushort MaxConcurrentResolutionsPerCore
