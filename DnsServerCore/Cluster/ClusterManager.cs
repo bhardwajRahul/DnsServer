@@ -525,6 +525,9 @@ namespace DnsServerCore.Cluster
             if (!_dnsWebService.IsWebServiceTlsEnabled)
                 throw new InvalidOperationException();
 
+            if (session.User.IsSsoUser)
+                throw new DnsServerException("Failed to initialize Cluster: a SSO user cannot initialize cluster. Please login with a local administrator user account and try again.");
+
             clusterDomain = clusterDomain.ToLowerInvariant();
 
             //create self node
@@ -866,7 +869,7 @@ namespace DnsServerCore.Cluster
             return secondaryNode;
         }
 
-        public Task TransferConfigAsync(Stream zipStream, DateTime ifModifiedSince, IReadOnlyCollection<string> includeZones)
+        public Task TransferConfigAsync(Stream zipStream, DateTime ifModifiedSince, ICollection<string> includeZones)
         {
             if (!ClusterInitialized)
                 throw new DnsServerException("Failed to transfer configuration: the Cluster is not initialized.");
