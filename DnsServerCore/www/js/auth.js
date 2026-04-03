@@ -18,35 +18,56 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 var sessionData = null;
+var localGroups = null;
+var otpTimerHandle = null;
 
 $(function () {
-    var token = localStorage.getItem("token");
-    if (token == null) {
+    var hash = window.location.hash;
+    if (hash.length > 0)
+        hash = "?" + hash.substr(1);
+
+    var urlParams = new URLSearchParams(hash);
+    window.history.replaceState(null, '', window.location.protocol + "//" + window.location.host + window.location.pathname);
+
+    var errorMessage = urlParams.get("error");
+    if (errorMessage != null) {
         showPageLogin();
-        login("admin", "admin");
+        showAlert("danger", "Error!", errorMessage);
     }
     else {
-        HTTPRequest({
-            url: "api/user/session/get",
-            token: token,
-            success: function (responseJSON) {
-                sessionData = responseJSON;
-                localStorage.setItem("token", sessionData.token);
+        var token = getCookie("token");
+        if (token != null)
+            setCookie("token", "", 0); //delete cookie immediately
+        else
+            token = localStorage.getItem("token");
 
-                $("#mnuUserDisplayName").text(sessionData.displayName);
-                document.title = sessionData.info.dnsServerDomain + " - " + "Technitium DNS Server v" + sessionData.info.version;
-                $("#lblAboutVersion").text(sessionData.info.version);
-                $("#lblAboutUptime").text(moment(sessionData.info.uptimestamp).local().format("lll") + " (" + moment(sessionData.info.uptimestamp).fromNow() + ")");
-                $("#lblDnsServerDomain").text(" - " + sessionData.info.dnsServerDomain);
-                $("#chkUseSoaSerialDateScheme").prop("checked", sessionData.info.useSoaSerialDateScheme);
-                $("#chkDnssecValidation").prop("checked", sessionData.info.dnssecValidation);
+        if (token == null) {
+            showPageLogin();
+            login("admin", "admin");
+        }
+        else {
+            HTTPRequest({
+                url: "api/user/session/get",
+                token: token,
+                success: function (responseJSON) {
+                    sessionData = responseJSON;
+                    localStorage.setItem("token", sessionData.token);
 
-                showPageMain();
-            },
-            error: function () {
-                showPageLogin();
-            }
-        });
+                    $("#mnuUserDisplayName").text(sessionData.displayName);
+                    document.title = sessionData.info.dnsServerDomain + " - " + "Technitium DNS Server v" + sessionData.info.version;
+                    $("#lblAboutVersion").text(sessionData.info.version);
+                    $("#lblAboutUptime").text(moment(sessionData.info.uptimestamp).local().format("lll") + " (" + moment(sessionData.info.uptimestamp).fromNow() + ")");
+                    $("#lblDnsServerDomain").text(" - " + sessionData.info.dnsServerDomain);
+                    $("#chkUseSoaSerialDateScheme").prop("checked", sessionData.info.useSoaSerialDateScheme);
+                    $("#chkDnssecValidation").prop("checked", sessionData.info.dnssecValidation);
+
+                    showPageMain();
+                },
+                error: function () {
+                    showPageLogin();
+                }
+            });
+        }
     }
 
     $("#optGroupDetailsUserList").on("change", function () {
@@ -179,6 +200,11 @@ $(function () {
 });
 
 function login(username, password) {
+    if (otpTimerHandle != null)
+        clearTimeout(otpTimerHandle);
+
+    const OTP_TIMEOUT_INTERVAL = 30000;
+
     var autoLogin = false;
 
     if (username == null) {
@@ -207,6 +233,7 @@ function login(username, password) {
         if ((totp == null) || (totp.length != 6)) {
             showAlert("warning", "Missing!", "Please enter the 6-digit OTP that you see in your authenticator app.");
             $("#txt2FATOTP").trigger("focus");
+            otpTimerHandle = setTimeout(showPageLogin, OTP_TIMEOUT_INTERVAL);
             return;
         }
     }
@@ -239,6 +266,7 @@ function login(username, password) {
             if ($("#div2FAOTP").is(":visible")) {
                 $("#txt2FATOTP").val("");
                 $("#txt2FATOTP").trigger("focus");
+                otpTimerHandle = setTimeout(showPageLogin, OTP_TIMEOUT_INTERVAL);
             }
             else {
                 $("#txtUser").trigger("focus");
@@ -257,6 +285,7 @@ function login(username, password) {
                 $("#txtPass").prop("disabled", true);
                 $("#div2FAOTP").show();
                 $("#txt2FATOTP").trigger("focus");
+                otpTimerHandle = setTimeout(showPageLogin, OTP_TIMEOUT_INTERVAL);
             }
         }
     });
@@ -280,18 +309,10 @@ function logout() {
 function showCreateMyApiTokenModal() {
     $("#divCreateApiTokenAlert").html("");
     $("#txtCreateApiTokenUsername").val(sessionData.username);
-    $("#txtCreateApiTokenPassword").val("");
-    $("#txtCreateApiToken2FATOTP").val("");
     $("#txtCreateApiTokenName").val("");
 
     $("#txtCreateApiTokenUsername").show();
     $("#optCreateApiTokenUsername").hide();
-    $("#divCreateApiTokenPassword").show();
-
-    if (sessionData.totpEnabled)
-        $("#divCreateApiToken2FAOTP").show();
-    else
-        $("#divCreateApiToken2FAOTP").hide();
 
     $("#divCreateApiTokenLoader").hide();
     $("#divCreateApiTokenForm").show();
@@ -304,7 +325,7 @@ function showCreateMyApiTokenModal() {
     $("#modalCreateApiToken").modal("show");
 
     setTimeout(function () {
-        $("#txtCreateApiTokenPassword").trigger("focus");
+        $("#txtCreateApiTokenName").trigger("focus");
     }, 1000);
 }
 
@@ -313,25 +334,7 @@ function createMyApiToken(objBtn) {
 
     var divCreateApiTokenAlert = $("#divCreateApiTokenAlert");
 
-    var user = $("#txtCreateApiTokenUsername").val();
-    var password = $("#txtCreateApiTokenPassword").val();
-    var totp = $("#txtCreateApiToken2FATOTP").val();
     var tokenName = $("#txtCreateApiTokenName").val();
-
-    if (password === "") {
-        showAlert("warning", "Missing!", "Please enter a password.", divCreateApiTokenAlert);
-        $("#txtCreateApiTokenPassword").trigger("focus");
-        return;
-    }
-
-    if (sessionData.totpEnabled) {
-        if (totp.length != 6) {
-            showAlert("warning", "Missing!", "Please enter the 6-digit OTP that you see in your authenticator app.", divCreateApiTokenAlert);
-            $("#txtCreateApiToken2FATOTP").trigger("focus");
-            return;
-        }
-    }
-
     if (tokenName === "") {
         showAlert("warning", "Missing!", "Please enter a token name.", divCreateApiTokenAlert);
         $("#txtCreateApiTokenName").trigger("focus");
@@ -342,8 +345,9 @@ function createMyApiToken(objBtn) {
 
     HTTPRequest({
         url: "api/user/createToken",
+        token: sessionData.token,
         method: "POST",
-        data: "user=" + encodeURIComponent(user) + "&pass=" + encodeURIComponent(password) + "&totp=" + encodeURIComponent(totp) + "&tokenName=" + encodeURIComponent(tokenName),
+        data: "tokenName=" + encodeURIComponent(tokenName),
         processData: false,
         success: function (responseJSON) {
             btn.button("reset");
@@ -651,9 +655,19 @@ function showMyProfileModal() {
 
             $("#mnuUserDisplayName").text(sessionData.displayName);
 
+            $("#txtMyProfileDisplayName").prop("disabled", responseJSON.response.isSsoUser);
             $("#txtMyProfileDisplayName").val(responseJSON.response.displayName);
             $("#txtMyProfileUsername").val(responseJSON.response.username);
-            $("#lblMyProfile2FAStatus").text(responseJSON.response.totpEnabled ? "Enabled" : "Disabled");
+
+            if (responseJSON.response.isSsoUser) {
+                $("#lblMyProfileUserType").text("Remote/SSO");
+                $("#lblMyProfile2FAStatus").text("SSO Managed");
+            }
+            else {
+                $("#lblMyProfileUserType").text("Local");
+                $("#lblMyProfile2FAStatus").text(responseJSON.response.totpEnabled ? "Enabled" : "Disabled");
+            }
+
             $("#txtMyProfileSessionTimeout").val(responseJSON.response.sessionTimeoutSeconds);
 
             {
@@ -736,18 +750,21 @@ function saveMyProfile(objBtn) {
     var btn = $(objBtn);
     var divMyProfileAlert = $("#divMyProfileAlert");
 
-    var displayName = $("#txtMyProfileDisplayName").val();
-
     var sessionTimeoutSeconds = $("#txtMyProfileSessionTimeout").val();
     if (sessionTimeoutSeconds === "")
         sessionTimeoutSeconds = 1800;
 
-    var apiUrl = "api/user/profile/set?displayName=" + encodeURIComponent(displayName) + "&sessionTimeoutSeconds=" + encodeURIComponent(sessionTimeoutSeconds);
+    var params = "sessionTimeoutSeconds=" + encodeURIComponent(sessionTimeoutSeconds);
+
+    if (!$("#txtMyProfileDisplayName").prop("disabled")) {
+        var displayName = $("#txtMyProfileDisplayName").val();
+        params += "&displayName=" + encodeURIComponent(displayName);
+    }
 
     btn.button("loading");
 
     HTTPRequest({
-        url: apiUrl,
+        url: "api/user/profile/set?" + params,
         token: sessionData.token,
         success: function (responseJSON) {
             sessionData.displayName = responseJSON.response.displayName;
@@ -823,6 +840,8 @@ function refreshAdminTab() {
         refreshAdminGroups();
     else if ($("#adminTabListPermissions").hasClass("active"))
         refreshAdminPermissions();
+    else if ($("#adminTabListSso").hasClass("active"))
+        refreshAdminSsoConfig();
     else if ($("#adminTabListCluster").hasClass("active"))
         refreshAdminCluster();
     else
@@ -873,13 +892,14 @@ function refreshAdminSessions() {
                         break;
                 }
 
-                tableHtmlRows += "<tr id=\"trAdminSessions" + i + "\"><td>" + htmlEncode(responseJSON.response.sessions[i].username) + "</td><td style=\"min-width: 155px; word-wrap: anywhere;\">" +
+                tableHtmlRows += "<tr id=\"trAdminSessions" + i + "\"><td><a href=\"#\" data-username=\"" + htmlEncode(responseJSON.response.sessions[i].username) + "\" onclick=\"showUserDetailsModal(this); return false;\">" + htmlEncode(responseJSON.response.sessions[i].username) + "</a></td><td style=\"min-width: 155px; word-wrap: anywhere;\">" +
                     session + "</td><td>" +
                     htmlEncode(moment(responseJSON.response.sessions[i].lastSeen).local().format("YYYY-MM-DD HH:mm:ss")) + "<br /><span style=\"font-size: 12px\">" + htmlEncode("(" + moment(responseJSON.response.sessions[i].lastSeen).fromNow() + ")") + "</span></td><td>" +
                     htmlEncode(responseJSON.response.sessions[i].lastSeenRemoteAddress) + "</td><td style=\"word-wrap: anywhere;\">" +
                     htmlEncode(responseJSON.response.sessions[i].lastSeenUserAgent);
 
                 tableHtmlRows += "</td><td align=\"right\"><div class=\"dropdown\"><a href=\"#\" id=\"btnAdminSessionRowOption" + i + "\" class=\"dropdown-toggle\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"true\"><span class=\"glyphicon glyphicon-option-vertical\" aria-hidden=\"true\"></span></a><ul class=\"dropdown-menu dropdown-menu-right\">";
+                tableHtmlRows += "<li><a href=\"#\" data-username=\"" + htmlEncode(responseJSON.response.sessions[i].username) + "\" onclick=\"showUserDetailsModal(this); return false;\">View User Details</a></li>";
                 tableHtmlRows += "<li><a href=\"#\" data-id=\"" + i + "\" data-session-type=\"" + responseJSON.response.sessions[i].type + "\" data-partial-token=\"" + responseJSON.response.sessions[i].partialToken + "\" onclick=\"deleteAdminSession(this); return false;\">Delete Session</a></li>";
                 tableHtmlRows += "</ul></div></td></tr>";
             }
@@ -939,8 +959,6 @@ function showCreateApiTokenModal() {
 
             $("#optCreateApiTokenUsername").show();
             $("#txtCreateApiTokenUsername").hide();
-            $("#divCreateApiTokenPassword").hide();
-            $("#divCreateApiToken2FAOTP").hide();
             $("#txtCreateApiTokenName").val("");
 
             divCreateApiTokenLoader.hide();
@@ -1088,20 +1106,31 @@ function refreshAdminUsers() {
 }
 
 function getAdminUsersRowHtml(id, user) {
-    var totpStatus = "";
-    if (user.totpEnabled)
-        totpStatus += "<span class=\"label label-success\">Enabled</span>";
-    else
-        totpStatus += "<span class=\"label label-default\">Disabled</span>";
+    var userType;
+    var totpStatus;
 
-    var status = "";
+    if (user.isSsoUser) {
+        userType = "Remote/SSO";
+        totpStatus = "<span class=\"label label-info\">SSO Managed</span>"
+    }
+    else {
+        userType = "Local";
+
+        if (user.totpEnabled)
+            totpStatus = "<span class=\"label label-success\">Enabled</span>";
+        else
+            totpStatus = "<span class=\"label label-default\">Disabled</span>";
+    }
+
+    var status;
     if (user.disabled)
-        status += "<span class=\"label label-warning\">Disabled</span>";
+        status = "<span class=\"label label-default\">Disabled</span>";
     else
-        status += "<span class=\"label label-success\">Enabled</span>";
+        status = "<span class=\"label label-success\">Enabled</span>";
 
     var tableHtmlRows = "<tr id=\"trAdminUsers" + id + "\"><td style=\"word-wrap: anywhere;\"><a href=\"#\" data-id=\"" + id + "\" data-username=\"" + htmlEncode(user.username) + "\" onclick=\"showUserDetailsModal(this); return false;\">" + htmlEncode(user.username) + "</a></td><td style=\"word-wrap: anywhere;\">" +
         htmlEncode(user.displayName) + "</td><td>" +
+        userType + "</td><td>" +
         totpStatus + "</td><td>" +
         status + "</td><td>" +
         htmlEncode(moment(user.recentSessionLoggedOn).local().format("YYYY-MM-DD HH:mm:ss")) + " from " + htmlEncode(user.recentSessionRemoteAddress) + "</td><td>" +
@@ -1111,10 +1140,13 @@ function getAdminUsersRowHtml(id, user) {
     tableHtmlRows += "<li><a href=\"#\" data-id=\"" + id + "\" data-username=\"" + htmlEncode(user.username) + "\" onclick=\"showUserDetailsModal(this); return false;\">View Details</a></li>";
     tableHtmlRows += "<li id=\"mnuAdminUserRowEnable" + id + "\"" + (user.disabled ? "" : " style=\"display: none;\"") + "><a href=\"#\" data-id=\"" + id + "\" data-username=\"" + htmlEncode(user.username) + "\" onclick=\"enableUser(this); return false;\">Enable</a></li>";
     tableHtmlRows += "<li id=\"mnuAdminUserRowDisable" + id + "\"" + (!user.disabled ? "" : " style=\"display: none;\"") + "><a href=\"#\" data-id=\"" + id + "\" data-username=\"" + htmlEncode(user.username) + "\" onclick=\"disableUser(this); return false;\">Disable</a></li>";
-    tableHtmlRows += "<li><a href=\"#\" data-id=\"" + id + "\" data-username=\"" + htmlEncode(user.username) + "\" onclick=\"showResetUserPasswordModal(this); return false;\">Reset Password</a></li>";
 
-    if (user.totpEnabled)
-        tableHtmlRows += "<li><a href=\"#\" data-id=\"" + id + "\" data-username=\"" + htmlEncode(user.username) + "\" onclick=\"adminDisable2FA(this); return false;\">Disable 2FA</a></li>";
+    if (!user.isSsoUser) {
+        tableHtmlRows += "<li><a href=\"#\" data-id=\"" + id + "\" data-username=\"" + htmlEncode(user.username) + "\" onclick=\"showResetUserPasswordModal(this); return false;\">Reset Password</a></li>";
+
+        if (user.totpEnabled)
+            tableHtmlRows += "<li><a href=\"#\" data-id=\"" + id + "\" data-username=\"" + htmlEncode(user.username) + "\" onclick=\"adminDisable2FA(this); return false;\">Disable 2FA</a></li>";
+    }
 
     tableHtmlRows += "<li role=\"separator\" class=\"divider\"></li>";
     tableHtmlRows += "<li><a href=\"#\" data-id=\"" + id + "\" data-username=\"" + htmlEncode(user.username) + "\" onclick=\"deleteUser(this); return false;\">Delete User</a></li>";
@@ -1224,9 +1256,21 @@ function showUserDetailsModal(objMenuItem) {
         url: "api/admin/users/get?user=" + encodeURIComponent(username) + "&includeGroups=true",
         token: sessionData.token,
         success: function (responseJSON) {
+            $("#txtUserDetailsDisplayName").prop("disabled", responseJSON.response.isSsoUser);
             $("#txtUserDetailsDisplayName").val(responseJSON.response.displayName);
+
+            $("#txtUserDetailsUsername").prop("disabled", responseJSON.response.isSsoUser);
             $("#txtUserDetailsUsername").val(responseJSON.response.username);
-            $("#lblUserDetails2FAStatus").text(responseJSON.response.totpEnabled ? "Enabled" : "Disabled");
+
+            if (responseJSON.response.isSsoUser) {
+                $("#lblUserDetailsUserType").text("Remote/SSO");
+                $("#lblUserDetails2FAStatus").text("SSO Managed");
+            }
+            else {
+                $("#lblUserDetailsUserType").text("Local");
+                $("#lblUserDetails2FAStatus").text(responseJSON.response.totpEnabled ? "Enabled" : "Disabled");
+            }
+
             $("#chkUserDetailsDisableAccount").prop("checked", responseJSON.response.disabled);
             $("#txtUserDetailsSessionTimeout").val(responseJSON.response.sessionTimeoutSeconds);
 
@@ -1235,6 +1279,9 @@ function showUserDetailsModal(objMenuItem) {
             for (var i = 0; i < responseJSON.response.memberOfGroups.length; i++) {
                 memberOf += htmlEncode(responseJSON.response.memberOfGroups[i]) + "\n";
             }
+
+            $("#txtUserDetailsMemberOf").prop("disabled", responseJSON.response.isSsoUser && responseJSON.response.ssoManagedGroups)
+            $("#optUserDetailsGroupList").prop("disabled", responseJSON.response.isSsoUser && responseJSON.response.ssoManagedGroups)
 
             $("#txtUserDetailsMemberOf").val(memberOf);
 
@@ -1291,7 +1338,10 @@ function showUserDetailsModal(objMenuItem) {
             $("#tfootUserDetailsActiveSessions").html("Total Sessions: " + responseJSON.response.sessions.length);
 
             var btnUserDetailsSave = $("#btnUserDetailsSave");
-            btnUserDetailsSave.attr("data-id", id);
+
+            if (id != null)
+                btnUserDetailsSave.attr("data-id", id);
+
             btnUserDetailsSave.attr("data-username", username);
 
             divUserDetailsLoader.hide();
@@ -1363,25 +1413,35 @@ function saveUserDetails(objBtn) {
 
     var id = btn.attr("data-id");
     var username = btn.attr("data-username");
-    var newUsername = $("#txtUserDetailsUsername").val();
-    var displayName = $("#txtUserDetailsDisplayName").val();
+
     var disabled = $("#chkUserDetailsDisableAccount").prop("checked");
 
     var sessionTimeoutSeconds = $("#txtUserDetailsSessionTimeout").val();
     if (sessionTimeoutSeconds === "")
         sessionTimeoutSeconds = 1800;
 
-    var memberOfGroups = cleanTextList($("#txtUserDetailsMemberOf").val());
+    var params = "user=" + encodeURIComponent(username) + "&disabled=" + disabled + "&sessionTimeoutSeconds=" + encodeURIComponent(sessionTimeoutSeconds);
 
-    var apiUrl = "api/admin/users/set?user=" + encodeURIComponent(username) + "&displayName=" + encodeURIComponent(displayName) + "&disabled=" + disabled + "&sessionTimeoutSeconds=" + encodeURIComponent(sessionTimeoutSeconds) + "&memberOfGroups=" + encodeURIComponent(memberOfGroups);
+    if (!$("#txtUserDetailsDisplayName").prop("disabled")) {
+        var displayName = $("#txtUserDetailsDisplayName").val();
+        params += "&displayName=" + encodeURIComponent(displayName);
+    }
 
-    if (newUsername !== username)
-        apiUrl += "&newUser=" + encodeURIComponent(newUsername);
+    if (!$("#txtUserDetailsUsername").prop("disabled")) {
+        var newUsername = $("#txtUserDetailsUsername").val();
+        if (newUsername !== username)
+            params += "&newUser=" + encodeURIComponent(newUsername);
+    }
+
+    if (!$("#txtUserDetailsMemberOf").prop("disabled")) {
+        var memberOfGroups = cleanTextList($("#txtUserDetailsMemberOf").val());
+        params += "&memberOfGroups=" + encodeURIComponent(memberOfGroups);
+    }
 
     btn.button("loading");
 
     HTTPRequest({
-        url: apiUrl,
+        url: "api/admin/users/set?" + params,
         token: sessionData.token,
         success: function (responseJSON) {
             if (sessionData.username === username) {
@@ -1390,11 +1450,16 @@ function saveUserDetails(objBtn) {
                 $("#mnuUserDisplayName").text(sessionData.displayName);
             }
 
-            var tableHtmlRow = getAdminUsersRowHtml(id, responseJSON.response);
-            $("#trAdminUsers" + id).replaceWith(tableHtmlRow);
+            if (id != null) {
+                var tableHtmlRow = getAdminUsersRowHtml(id, responseJSON.response);
+                $("#trAdminUsers" + id).replaceWith(tableHtmlRow);
+            }
 
             btn.button("reset");
             $("#modalUserDetails").modal("hide");
+
+            if (id == null)
+                refreshAdminSessions();
 
             showAlert("success", "User Saved!", "User details were saved successfully.");
         },
@@ -2076,5 +2141,144 @@ function saveSectionPermissions(objBtn) {
             showPageLogin();
         },
         objAlertPlaceholder: divEditPermissionsAlert
+    });
+}
+
+function refreshAdminSsoConfig() {
+    var divAdminSsoLoader = $("#divAdminSsoLoader");
+    var divAdminSsoView = $("#divAdminSsoView");
+
+    divAdminSsoLoader.show();
+    divAdminSsoView.hide();
+
+    HTTPRequest({
+        url: "api/admin/sso/get?includeGroups=true",
+        token: sessionData.token,
+        success: function (responseJSON) {
+            localGroups = responseJSON.response.localGroups;
+
+            loadAdminSsoConfig(responseJSON);
+
+            divAdminSsoLoader.hide();
+            divAdminSsoView.show();
+        },
+        invalidToken: function () {
+            showPageLogin();
+        },
+        objLoaderPlaceholder: divAdminSsoLoader
+    });
+}
+
+function loadAdminSsoConfig(responseJSON) {
+    $("#chkAdminSsoEnabled").prop("checked", responseJSON.response.ssoEnabled);
+    $("#txtAdminSsoAuthority").val(responseJSON.response.ssoAuthority);
+    $("#txtAdminSsoClientId").val(responseJSON.response.ssoClientId);
+    $("#txtAdminSsoClientSecret").val(responseJSON.response.ssoClientSecret);
+    $("#txtAdminSsoMetadataAddress").val(responseJSON.response.ssoMetadataAddress);
+    $("#chkAdminSsoAllowSignup").prop("checked", responseJSON.response.ssoAllowSignup);
+    $("#chkAdminSsoAllowSignupOnlyForMappedUsers").prop("checked", responseJSON.response.ssoAllowSignupOnlyForMappedUsers);
+
+    $("#tableAdminSsoGroupMap").html("");
+
+    for (var i = 0; i < responseJSON.response.ssoGroupMap.length; i++)
+        addAdminSsoGroupMapRow(responseJSON.response.ssoGroupMap[i].remoteGroup, responseJSON.response.ssoGroupMap[i].localGroup);
+
+    var redirectUri = window.location.protocol + "//" + window.location.host + window.location.pathname;
+    if (redirectUri.endsWith("/"))
+        redirectUri += "sso/callback";
+    else
+        redirectUri += "/sso/callback";
+
+    $("#lblAdminSsoRedirectUri").text(redirectUri);
+}
+
+function addAdminSsoGroupMapRow(remoteGroup, localGroup) {
+    var id = Math.floor(Math.random() * 10000);
+
+    var tableHtmlRows = "<tr id=\"tableAdminSsoGroupMapRow" + id + "\"><td><input type=\"text\" class=\"form-control\" value=\"" + htmlEncode(remoteGroup) + "\"></td>";
+
+    tableHtmlRows += "<td><select class=\"form-control\">";
+
+    for (var i = 0; i < localGroups.length; i++)
+        tableHtmlRows += "<option" + (localGroups[i] == localGroup ? " selected" : "") + ">" + htmlEncode(localGroups[i]) + "</option>";
+
+    tableHtmlRows += "</select></td>";
+
+    tableHtmlRows += "<td><button type=\"button\" class=\"btn btn-danger\" onclick=\"$('#tableAdminSsoGroupMapRow" + id + "').remove();\">Delete</button></td></tr>";
+
+    $("#tableAdminSsoGroupMap").append(tableHtmlRows);
+}
+
+function saveAdminSsoConfig(objBtn) {
+    var btn = $(objBtn);
+
+    var ssoEnabled = $("#chkAdminSsoEnabled").prop("checked");
+
+    var ssoAuthority = $("#txtAdminSsoAuthority").val();
+    if (ssoEnabled && (ssoAuthority === "")) {
+        showAlert("warning", "Missing!", "Please enter the Authority URL.");
+        $("#txtAdminSsoAuthority").trigger("focus");
+        return;
+    }
+
+    var ssoClientId = $("#txtAdminSsoClientId").val();
+    if (ssoEnabled && (ssoClientId === "")) {
+        showAlert("warning", "Missing!", "Please enter the Client ID.");
+        $("#txtAdminSsoClientId").trigger("focus");
+        return;
+    }
+
+    var ssoClientSecret = $("#txtAdminSsoClientSecret").val();
+    if (ssoEnabled && ssoClientSecret === "") {
+        showAlert("warning", "Missing!", "Please enter the Client Secret.");
+        $("#txtAdminSsoClientSecret").trigger("focus");
+        return;
+    }
+
+    var ssoMetadataAddress = $("#txtAdminSsoMetadataAddress").val();
+    var ssoAllowSignup = $("#chkAdminSsoAllowSignup").prop("checked");
+    var ssoAllowSignupOnlyForMappedUsers = $("#chkAdminSsoAllowSignupOnlyForMappedUsers").prop("checked");
+
+    var ssoGroupMap = serializeTableData($("#tableAdminSsoGroupMap"), 2);
+    if (ssoGroupMap === false)
+        return;
+
+    if (ssoGroupMap.length == 0)
+        ssoGroupMap = false;
+
+    if (ssoAuthority.startsWith("http:")) {
+        if (!confirm("WARNING! The SSO Authority must use a 'https' URL scheme for production environment. Are you sure you want to proceed with using a 'http' URL scheme?")) {
+            $("#txtAdminSsoAuthority").trigger("focus");
+            return;
+        }
+    }
+
+    if (ssoMetadataAddress.startsWith("http:")) {
+        if (!confirm("WARNING! The Metadata Address must use a 'https' URL scheme for production environment. Are you sure you want to proceed with using a 'http' URL scheme?")) {
+            $("#txtAdminSsoMetadataAddress").trigger("focus");
+            return;
+        }
+    }
+
+    btn.button("loading");
+
+    HTTPRequest({
+        url: "api/admin/sso/set",
+        token: sessionData.token,
+        method: "POST",
+        data: "ssoEnabled=" + ssoEnabled + "&ssoAuthority=" + encodeURIComponent(ssoAuthority) + "&ssoClientId=" + encodeURIComponent(ssoClientId) + "&ssoClientSecret=" + encodeURIComponent(ssoClientSecret) + "&ssoMetadataAddress=" + encodeURIComponent(ssoMetadataAddress) + "&ssoAllowSignup=" + ssoAllowSignup + "&ssoAllowSignupOnlyForMappedUsers=" + ssoAllowSignupOnlyForMappedUsers + "&ssoGroupMap=" + encodeURIComponent(ssoGroupMap),
+        success: function (responseJSON) {
+            loadAdminSsoConfig(responseJSON);
+            btn.button("reset");
+
+            showAlert("success", "SSO Config Saved!", "Single Sign-On (SSO) config was saved successfully.");
+        },
+        error: function () {
+            btn.button("reset");
+        },
+        invalidToken: function () {
+            btn.button("reset");
+            showPageLogin();
+        }
     });
 }
