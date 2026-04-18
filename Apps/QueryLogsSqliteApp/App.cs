@@ -22,6 +22,7 @@ using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Text.Json;
@@ -37,6 +38,8 @@ namespace QueryLogsSqlite
     public sealed class App : IDnsApplication, IDnsQueryLogger, IDnsQueryLogs
     {
         #region variables
+
+        readonly static JsonDocumentOptions _jsonParseOptions = new JsonDocumentOptions() { CommentHandling = JsonCommentHandling.Skip };
 
         IDnsServer? _dnsServer;
 
@@ -241,7 +244,7 @@ namespace QueryLogsSqlite
 
                             foreach (LogEntry log in logs)
                             {
-                                paramTimestamp.Value = log.Timestamp.ToString("yyyy-MM-dd HH:mm:ss.FFFFFFF");
+                                paramTimestamp.Value = log.Timestamp.ToString("yyyy-MM-dd HH:mm:ss.FFFFFFF", CultureInfo.InvariantCulture);
                                 paramClientIp.Value = log.RemoteEP.Address.ToString();
                                 paramProtocol.Value = (int)log.Protocol;
 
@@ -322,11 +325,14 @@ namespace QueryLogsSqlite
 
         #region public
 
-        public async Task InitializeAsync(IDnsServer dnsServer, string config)
+        public async Task InitializeAsync(IDnsServer dnsServer, string? config)
         {
             _dnsServer = dnsServer;
 
-            using JsonDocument jsonDocument = JsonDocument.Parse(config);
+            if (config is null)
+                throw new InvalidOperationException();
+
+            using JsonDocument jsonDocument = JsonDocument.Parse(config, _jsonParseOptions);
             JsonElement jsonConfig = jsonDocument.RootElement;
 
             bool enableLogging = jsonConfig.GetPropertyValue("enableLogging", true);
@@ -533,7 +539,7 @@ CREATE TABLE IF NOT EXISTS dns_logs
             return Task.CompletedTask;
         }
 
-        public async Task<DnsLogPage> QueryLogsAsync(long pageNumber, int entriesPerPage, bool descendingOrder, DateTime? start, DateTime? end, IPAddress clientIpAddress, DnsTransportProtocol? protocol, DnsServerResponseType? responseType, DnsResponseCode? rcode, string qname, DnsResourceRecordType? qtype, DnsClass? qclass)
+        public async Task<DnsLogPage> QueryLogsAsync(long pageNumber, int entriesPerPage, bool descendingOrder, DateTime? start, DateTime? end, IPAddress? clientIpAddress, DnsTransportProtocol? protocol, DnsServerResponseType? responseType, DnsResponseCode? rcode, string? qname, DnsResourceRecordType? qtype, DnsClass? qclass)
         {
             if (pageNumber == 0)
                 pageNumber = 1;
