@@ -116,7 +116,7 @@ namespace SplitHorizon
 
             do
             {
-                using JsonDocument jsonDocument = JsonDocument.Parse(config);
+                using JsonDocument jsonDocument = JsonDocument.Parse(config, SimpleAddress._jsonParseOptions);
                 JsonElement jsonConfig = jsonDocument.RootElement;
 
                 _appPreference = Convert.ToByte(jsonConfig.GetPropertyValue("appPreference", 40));

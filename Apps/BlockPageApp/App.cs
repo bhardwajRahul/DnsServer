@@ -50,6 +50,8 @@ namespace BlockPage
     {
         #region variables
 
+        readonly static JsonDocumentOptions _jsonParseOptions = new JsonDocumentOptions() { CommentHandling = JsonCommentHandling.Skip };
+
         IReadOnlyDictionary<string, WebServer>? _webServers;
 
         #endregion
@@ -87,9 +89,12 @@ namespace BlockPage
 
         #region public
 
-        public async Task InitializeAsync(IDnsServer dnsServer, string config)
+        public async Task InitializeAsync(IDnsServer dnsServer, string? config)
         {
-            using JsonDocument jsonDocument = JsonDocument.Parse(config);
+            if (config is null)
+                throw new InvalidOperationException();
+
+            using JsonDocument jsonDocument = JsonDocument.Parse(config, _jsonParseOptions);
             JsonElement jsonConfig = jsonDocument.RootElement;
 
             await StopAllWebServersAsync();

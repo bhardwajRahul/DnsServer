@@ -41,6 +41,8 @@ namespace DnsBlockList
     {
         #region variables
 
+        readonly static JsonDocumentOptions _jsonParseOptions = new JsonDocumentOptions() { CommentHandling = JsonCommentHandling.Skip };
+
         IDnsServer _dnsServer;
 
         Dictionary<string, BlockList> _dnsBlockLists;
@@ -156,7 +158,7 @@ namespace DnsBlockList
         {
             _dnsServer = dnsServer;
 
-            using JsonDocument jsonDocument = JsonDocument.Parse(config);
+            using JsonDocument jsonDocument = JsonDocument.Parse(config, _jsonParseOptions);
             JsonElement jsonConfig = jsonDocument.RootElement;
 
             if (jsonConfig.TryReadArrayAsMap("dnsBlockLists", ReadBlockList, out Dictionary<string, BlockList> dnsBlockLists))
@@ -197,7 +199,7 @@ namespace DnsBlockList
             if ((_dnsBlockLists is null) || !TryParseDnsblDomain(qname, appRecordName, out IPAddress address, out string domain))
                 return null;
 
-            using JsonDocument jsonDocument = JsonDocument.Parse(appRecordData);
+            using JsonDocument jsonDocument = JsonDocument.Parse(appRecordData, _jsonParseOptions);
             JsonElement jsonAppRecordData = jsonDocument.RootElement;
 
             if (jsonAppRecordData.TryReadArray("dnsBlockLists", out string[] dnsBlockLists))

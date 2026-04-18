@@ -32,6 +32,8 @@ namespace AutoPtr
     {
         #region variables
 
+        readonly static JsonDocumentOptions _jsonParseOptions = new JsonDocumentOptions() { CommentHandling = JsonCommentHandling.Skip };
+
         IDnsServer _dnsServer;
 
         #endregion
@@ -75,7 +77,7 @@ namespace AutoPtr
 
             string domain = null;
 
-            using (JsonDocument jsonDocument = JsonDocument.Parse(appRecordData))
+            using (JsonDocument jsonDocument = JsonDocument.Parse(appRecordData, _jsonParseOptions))
             {
                 JsonElement jsonAppRecordData = jsonDocument.RootElement;
 

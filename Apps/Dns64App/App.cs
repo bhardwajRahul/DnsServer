@@ -38,6 +38,8 @@ namespace Dns64
     {
         #region variables
 
+        readonly static JsonDocumentOptions _jsonParseOptions = new JsonDocumentOptions() { CommentHandling = JsonCommentHandling.Skip };
+
         IDnsServer _dnsServer;
 
         byte _appPreference;
@@ -63,7 +65,7 @@ namespace Dns64
         {
             _dnsServer = dnsServer;
 
-            using JsonDocument jsonDocument = JsonDocument.Parse(config);
+            using JsonDocument jsonDocument = JsonDocument.Parse(config, _jsonParseOptions);
             JsonElement jsonConfig = jsonDocument.RootElement;
 
             _appPreference = Convert.ToByte(jsonConfig.GetPropertyValue("appPreference", 30));
