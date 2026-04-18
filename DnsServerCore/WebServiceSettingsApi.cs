@@ -24,6 +24,7 @@ using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Mail;
@@ -1681,7 +1682,7 @@ namespace DnsServerCore
 
                         response.ContentType = "application/zip";
                         response.ContentLength = backupZipStream.Length;
-                        response.Headers.ContentDisposition = "attachment;filename=" + _dnsWebService._dnsServer.ServerDomain + DateTime.UtcNow.ToString("_yyyy-MM-dd_HH-mm-ss") + "_backup.zip";
+                        response.Headers.ContentDisposition = "attachment;filename=" + _dnsWebService._dnsServer.ServerDomain + DateTime.UtcNow.ToString("_yyyy-MM-dd_HH-mm-ss", CultureInfo.InvariantCulture) + "_backup.zip";
 
                         await using (Stream output = response.Body)
                         {
