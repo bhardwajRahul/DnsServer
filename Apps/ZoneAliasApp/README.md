@@ -32,15 +32,13 @@ The Zone Alias App operates at the authoritative request handler level with conf
 ## Installation
 
 1. Open the Technitium DNS Server web console.
-2. Navigate to **Apps** in the main menu.
-3. Click **Install** and select the Zone Alias App package, or use **Update** if upgrading an existing installation.
-4. Configure the application using the `dnsApp.config` file as described below.
+2. Navigate to **Apps** section.
+3. Click **App Store** and find the Zone Alias App to install.
+4. Configure the app by clicking on the **Config** button.
 
 ## Configuration
 
 The application is configured using the `dnsApp.config` file in JSON format. The configuration structure supports global aliasing settings and zone-specific alias mappings.
-
-All configuration changes require app reload or DNS server restart to take effect.
 
 ### Root Configuration Options
 

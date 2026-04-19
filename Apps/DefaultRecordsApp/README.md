@@ -21,15 +21,15 @@ This application is particularly useful for administrators managing multiple zon
 ## Installation
 
 1. Open the Technitium DNS Server web console
-2. Navigate to **Apps** in the main menu
-3. Click **Install** or **Update** and select the Default Records App package
-4. Configure the `dnsApp.config` file according to your zone and record requirements
+2. Navigate to **Apps** section
+3. Click **App Store** and find the Default Records App to install
+4. Configure the app by clicking on the **Config** button
 
 ## Configuration
 
 The application is configured using a JSON file named **`dnsApp.config`** located in the app's installation directory.
 
-The configuration file defines three primary components: global settings, zone-to-set mappings, and record sets. All configuration changes require an app restart or reload to take effect.
+The configuration file defines three primary components: global settings, zone-to-set mappings, and record sets.
 
 ### Root Configuration Options
 
@@ -259,11 +259,7 @@ When a wildcard zone pattern is matched (e.g., `"*.net"`), the app queries the D
 
 **Check Logs**:
 
-```bash
-tail -f /var/log/dns/dns.log
-```
-
-Look for errors related to zone file parsing or record format issues.
+Look for errors related to zone file parsing or record format issues from the Logs section on the web console.
 
 ### Records Applied to Wrong Zones
 

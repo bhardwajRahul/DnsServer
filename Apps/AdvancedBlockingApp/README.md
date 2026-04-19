@@ -29,7 +29,7 @@ The Advanced Blocking App extends the DNS server's blocking capabilities by allo
 
 1. Open Technitium DNS Server web console
 2. Navigate to **Apps** section
-3. Click **Install** or **Update** to download the Advanced Blocking App from the App Store
+3. Click **App Store** and find the Advanced Blocking App to install
 4. Configure the app by clicking on the **Config** button
 
 ## Configuration
@@ -243,7 +243,7 @@ Supports a subset of AdBlock syntax:
 3. **Block Check**: If the domain matches any block list, the app returns:
    - `NXDOMAIN` if `blockAsNxDomain` is `true`
    - Configured `blockingAddresses` for A/AAAA queries
-   - SOA record for other query types
+   - NO DATA response for other query types
 
 4. **Blocking Report**: When `allowTxtBlockingReport` is enabled:
    - TXT queries for blocked domains return metadata about why the domain was blocked
@@ -274,7 +274,7 @@ Supports a subset of AdBlock syntax:
 
 ### Testing blocking
 
-Query a TXT record for a blocked domain to see the blocking report:
+Query a TXT record for a blocked domain from the client IP address to see the blocking report:
 
 ```bash
 dig TXT blocked-domain.com @your-dns-server

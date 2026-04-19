@@ -22,9 +22,9 @@ This app is particularly valuable for environments requiring consistent, pattern
 
 1. Open the Technitium DNS Server web console.
 
-2. Navigate to **Apps** in the main menu.
+2. Navigate to **Apps** section.
 
-3. Click **Install App** or **Update** if a previous version exists.
+3. Click **App Store** and find the Auto PTR app to install.
 
 4. Configure APP records in the appropriate reverse DNS zone(s).
 
@@ -97,12 +97,12 @@ The app constructs PTR responses as follows:
 {
   "prefix": "v6-",
   "suffix": ".ip6.example.org",
-  "ipSeparator": ":"
+  "ipSeparator": "-"
 }
 ```
 
 **Query:** PTR for IPv6 reverse (e.g., 2001:db8::1)  
-**Response:** `v6-2001:0db8:0000:0000:0000:0000:0000:0001.ip6.example.org`
+**Response:** `v6-2001-0db8-0000-0000-0000-0000-0000-0001.ip6.example.org`
 
 ## How It Works
 

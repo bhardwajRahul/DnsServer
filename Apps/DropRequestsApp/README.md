@@ -20,11 +20,11 @@ This application is designed for **system administrators, ISPs, and security-con
 
 1. Open the Technitium DNS Server **web console**
 
-2. Navigate to **Apps** in the main menu
+2. Navigate to **Apps** section
 
-3. Click **Install/Update** and select the Drop Requests App
+3. Click **App Store** and find the Drop Requests App to install
 
-4. Configure the `dnsApp.config` file according to your network policy requirements
+4. Configure the app by clicking on the **Config** button
 
 ## Configuration
 
@@ -201,7 +201,7 @@ The Drop Requests App evaluates each incoming DNS request through the following 
 
 5. For question-based blocking, confirm the domain name matches the `name` field exactly (case-insensitive), or that `blockZone` is enabled for subdomain blocking
 
-6. Restart the Technitium DNS Server or reload the app configuration after making changes
+6. Reload the app through the web console by saving its config again.
 
 ### Legitimate Requests Are Being Dropped
 
@@ -229,7 +229,7 @@ The Drop Requests App evaluates each incoming DNS request through the following 
 
 2. Confirm the packets are actually malformed by checking for parsing exceptions in the DNS Server logs
 
-3. Reload the app configuration or restart the DNS Server after enabling the option
+3. Reload the app through the web console by saving its config again.
 
 4. Some malformed packets may still be logged before being dropped; check the action taken in the logs (`DropSilently`)
 

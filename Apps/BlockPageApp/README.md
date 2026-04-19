@@ -7,12 +7,13 @@ A DNS App for Technitium DNS Server that serves a configurable block page from a
 - **Embedded web server** – serves a local page to users trying to access blocked domains
 - **Multiple instances** – supports one or more named web server configurations
 - **TLS support** – self-signed or custom PKCS#12 certificates
+- **MiTM support** - serves block page over HTTPS with TLS certificate for the blocked domain name generated online, that is signed by a self-signed root certificate which can be install on client systems
 - **Dynamic or static mode** – generate a page or serve files from a web root
 
 ## Integration / extension points
 
 - Implements: `IDnsApplication`
-- Runs a built-in ASP.NET Core web server alongside DNS blocking.
+- Runs a built-in ASP.NET Core web server.
 
 ## Configuration
 
@@ -26,6 +27,7 @@ A DNS App for Technitium DNS Server that serves a configurable block page from a
 | `webServerUseSelfSignedTlsCertificate` | boolean | `true` | Use a generated self-signed certificate. |
 | `webServerTlsCertificateFilePath` | string | `null` | Path to a `.pfx`/`.p12` certificate. |
 | `webServerTlsCertificatePassword` | string | `null` | Certificate password. |
+| `webServerEnableOnlineCertificateSigning` | boolean | Enables the online TLS certificate generation feature for enabling HTTPS MiTM. |
 | `webServerRootPath` | string | `wwwroot` | Static file root. |
 | `serveBlockPageFromWebServerRoot` | boolean | `false` | Serve static files instead of generated block page. |
 | `blockPageTitle` | string | `Website Blocked` | Page title. |
@@ -44,6 +46,7 @@ A DNS App for Technitium DNS Server that serves a configurable block page from a
     "webServerUseSelfSignedTlsCertificate": true,
     "webServerTlsCertificateFilePath": null,
     "webServerTlsCertificatePassword": null,
+    "webServerEnableOnlineCertificateSigning": true,
     "webServerRootPath": "wwwroot",
     "serveBlockPageFromWebServerRoot": false,
     "blockPageTitle": "Website Blocked",
@@ -63,7 +66,7 @@ A DNS App for Technitium DNS Server that serves a configurable block page from a
 
 ## Risks / operational notes
 
-- Browsers will warn on self-signed certificates.
+- Browsers will warn on self-signed certificates if the certificate is not installed on the client system.
 - This app does not block queries by itself; DNS blocking must still be configured separately.
 - Ensure the IPs in `webServerLocalAddresses` match the DNS blocking target addresses.
 

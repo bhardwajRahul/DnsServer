@@ -21,8 +21,8 @@ This application provides administrative value for network operators implementin
 
 1. Open the Technitium DNS Server web console
 2. Navigate to **Apps** section
-3. Click **Install** or **Update** and select the DnsBlockListApp package
-4. Configure the application using the `dnsApp.config` file or via the web interface
+3. Click **App Store** and find the DNS Block List (DNSBL) App to install
+4. Configure the app by clicking on the **Config** button
 
 ## Configuration
 

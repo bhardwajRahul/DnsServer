@@ -45,13 +45,11 @@ The app processes responses **after** the DNS server completes resolution but **
 
 1. Open the Technitium DNS Server web console
 
-2. Navigate to **Apps** in the left menu
+2. Navigate to **Apps** section
 
-3. Click **Install App** or **Update App** if already installed
+3. Click **App Store** and find the DNS Rebinding Protection App to install
 
-4. Upload the compiled `DnsRebindingProtectionApp.dll` and `dnsApp.config` files
-
-5. Configure the app by editing `dnsApp.config` as described below
+4. Configure the app by clicking on the **Config** button
 
 ## Configuration
 
@@ -268,4 +266,4 @@ The app applies the following processing pipeline to each DNS response:
 2. Check JSON syntax validity using a JSON validator
 3. Review DNS server logs for configuration parsing errors
 
-**Resolution**: Restart the Technitium DNS Server application or reload the app through the web console.
+**Resolution**: Reload the app through the web console by saving its config again.

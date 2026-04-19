@@ -1,6 +1,6 @@
 # Split Horizon App
 
-A DNS App (plugin) for Technitium DNS Server that enables split-horizon DNS functionality and network address translation, allowing administrators to serve different DNS responses and translate IP addresses based on the network location of the requesting client.
+A DNS App (plugin) for Technitium DNS Server that enables split-horizon DNS functionality and address translation, allowing administrators to serve different DNS responses and translate IP addresses based on the network location of the requesting client.
 
 This application is designed to:
 
@@ -29,12 +29,10 @@ This application is intended to support administrators in implementing **policy-
 ## Installation
 
 1. Open the Technitium DNS Server web console.
-2. Navigate to **Apps**.
-3. Select **Install / Update**.
-4. Upload or select the Split Horizon App package.
-5. Complete the installation.
-6. Configure the app through the Apps interface or by editing `dnsApp.config` directly.
-7. Reload the app or restart the DNS service for changes to take effect.
+2. Navigate to **Apps** section.
+3. Click **App Store** and find the Split Horizon App to install.
+4. Configure the app by clicking on the **Config** button.
+5. Configure APP records in the appropriate reverse DNS zone(s).
 
 ## Configuration
 
@@ -424,7 +422,6 @@ Development teams receive DNS records pointing to staging infrastructure while p
 - Add the client's network to the APP record configuration as a CIDR range.
 - Define a named network in the global `networks` configuration and reference it in the APP record.
 - Ensure CIDR notation is correct (e.g., `192.168.1.0/24`, not `192.168.1.*`).
-- Reload the app or restart the DNS server after configuration changes.
 
 ### Address Translation Not Applied
 
@@ -512,12 +509,10 @@ Development teams receive DNS records pointing to staging infrastructure while p
 
 1. Validate JSON syntax using a JSON validator.
 2. Check DNS server logs for configuration parsing errors.
-3. Verify the app has been reloaded or the DNS server has been restarted.
-4. Confirm file permissions allow the DNS server to read the configuration file.
+3. Confirm file permissions allow the DNS server to read the configuration file.
 
 **Resolution:**
 
 - Validate and correct JSON syntax errors.
-- Reload the app through the web console: **Apps → Split Horizon → Reload**.
-- Restart the Technitium DNS Server service.
+- Reload the app through the web console by saving the config again.
 - Review application logs for specific error messages.

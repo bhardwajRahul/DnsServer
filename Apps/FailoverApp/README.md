@@ -48,9 +48,9 @@ app.example.com.  APP  failover   (primary: 192.0.2.1, secondary: 192.0.2.2)
 ## Installation
 
 1. Open the **Technitium DNS Server web console**
-2. Navigate to **Apps** → **DNS Apps**
-3. Click **Install** or **Update** to deploy the Failover App
-4. Configure health checks, email alerts, and webhooks in `dnsApp.config`
+2. Navigate to **Apps** section
+3. Click **App Store** and find the Failover App to install
+4. Configure the app by clicking on the **Config** button
 5. Create APP records in your zones referencing the configured health checks
 
 ## Configuration
@@ -631,8 +631,7 @@ Use different health checks for different service layers (ping for network, TCP 
    cat dnsApp.config | jq .
    ```
 
-3. Ensure .NET 9.0 runtime is installed
-4. Restart DNS server service
+3. Reload the app through the web console by saving its config again.
 
 **Resolution**:
 

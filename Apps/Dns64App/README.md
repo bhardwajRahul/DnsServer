@@ -40,11 +40,11 @@ DNS64 operates as a post-processor in the DNS resolution pipeline. It processes 
 
 1. Open the Technitium DNS Server web console
 
-2. Navigate to **Apps** in the main menu
+2. Navigate to **Apps** section
 
-3. Click **Install/Update** and upload the DNS64 App package, or install directly from the App Store
+3. Click **App Store** and find the DNS64 App to install
 
-4. Configure the app by editing the `dnsApp.config` file or using the web interface
+4. Configure the app by clicking on the **Config** button
 
 ## Configuration
 
