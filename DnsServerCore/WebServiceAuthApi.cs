@@ -402,13 +402,13 @@ namespace DnsServerCore
                 string userInfo = "";
 
                 if (displayName is not null)
-                    userInfo = "displayName: " + displayName + "; ";
+                    userInfo = "claimDisplayName: " + displayName + "; ";
 
                 if (username is not null)
-                    userInfo += "username: " + username + "; ";
+                    userInfo += "claimUsername: " + username + "; ";
 
                 if (email is not null)
-                    userInfo += "email: " + email + "; ";
+                    userInfo += "claimEmail: " + email + "; ";
 
                 return userInfo.TrimEnd();
             }
@@ -550,7 +550,10 @@ namespace DnsServerCore
                         user = _dnsWebService._authManager.CreateSsoUser(displayName, localUsername, ssoIdentifier);
                         newSsoUserCreated = true;
 
-                        _dnsWebService._log.Write(remoteEP, "SSO user account was created successfully with username: " + user.Username);
+                        {
+                            string userInfo = GetUserInfoString(displayName, username, email);
+                            _dnsWebService._log.Write(remoteEP, "SSO user account was created successfully with username: " + user.Username + (userInfo.Length == 0 ? "" : " (" + userInfo + ")."));
+                        }
                     }
                     else
                     {
